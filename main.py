@@ -30,8 +30,8 @@ CYCLED_PALETTES = tuple(
     PALETTE[-n:] + PALETTE[:-n] for n in range(len(PALETTE))
 )
 
-def pixel_map(i, j, palette_cycle, x_cycle, y_cycle, src_pa):
-    return PALETTE[(SRC_MAP[src_pa[int(i + x_cycle)%256, int(j + y_cycle)%256]] + palette_cycle) % len(PALETTE)]
+def pixel_map(i, j, palette_cycle, dx, dy, src_pa, src_width, src_height):
+    return PALETTE[(SRC_MAP[src_pa[int(i - dx)%src_width, int(j - dy)%src_height]] + palette_cycle) % len(PALETTE)]
 
 def main():
     pygame.init()
@@ -40,18 +40,16 @@ def main():
 
     src = pygame.image.load("bg2.png").convert()
     src_pa = pygame.PixelArray(src)
+    src_width, src_height = src.get_size()
 
     image = pygame.surface.Surface((256, 256))
 
     palette_cycle_period = .2
     palette_cycle_t = 0.
     palette_cycle = 0
-    x_cycle_period = 5
-    y_cycle_period = 11
-    x_cycle_t = 0.
-    y_cycle_t = 0.
-    x_cycle = 0
-    y_cycle = 0
+    v_x = 5
+    v_y = 11
+    dx, dy = 0., 0.
 
     clock = pygame.time.Clock()
     try:
@@ -60,14 +58,14 @@ def main():
             if (palette_cycle_t := palette_cycle_t+dt) > palette_cycle_period:
                 palette_cycle_t = 0
                 palette_cycle = (palette_cycle + 1) % len(PALETTE)
-            x_cycle += dt*256/x_cycle_period
-            y_cycle += dt*256/y_cycle_period
-            x_cycle %= 256
-            y_cycle %= 256
+            dx += v_x*dt
+            dy += v_y*dt
+            dx %= src_width
+            dy %= src_height
             with pygame.PixelArray(image) as pa:
                 for i in range(256):
                     for j in range(256):
-                        pa[i,j] = pixel_map(i, j, palette_cycle, x_cycle, y_cycle, src_pa)
+                        pa[i,j] = pixel_map(i, j, palette_cycle, dx, dy, src_pa, src_width, src_height)
             display.blit(image, (0, 0))
             pygame.display.flip()
     except KeyboardInterrupt:
