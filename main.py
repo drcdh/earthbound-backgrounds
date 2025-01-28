@@ -21,7 +21,7 @@ def draw_image(image, src_pa, src_width, src_height, src_map, palette, palette_c
             for j in range(h):
                 pa[i,j] = pixel_map(i, j, src_map, palette, palette_cycle, dx, dy, x_osc_mag, y_osc_mag, x_osc_period, y_osc_period, src_pa, src_width, src_height)
 
-def main(source_image, source_palette, palette, num_images, cycle_period, x_vel, y_vel, x_osc_mag, y_osc_mag, x_osc_period, y_osc_period, width, height):
+def main(source_image, source_palette, palette, num_images, cycle_offset, cycle_period, x_vel, y_vel, x_osc_mag, y_osc_mag, x_osc_period, y_osc_period, width, height):
     source_palette = read_palette(source_palette)
     palette = read_palette(palette)
     cycled_palettes = (palette,) if cycle_period is None else tuple(
@@ -30,6 +30,7 @@ def main(source_image, source_palette, palette, num_images, cycle_period, x_vel,
 
     src_map = {c: i for i, c in enumerate(source_palette)}
 
+    cycle_offset = cycle_offset or [0]
     cycle_period = cycle_period or [float("inf")]
     x_vel = x_vel or [0.]
     y_vel = y_vel or [0.]
@@ -38,7 +39,7 @@ def main(source_image, source_palette, palette, num_images, cycle_period, x_vel,
     x_osc_period = x_osc_period or [float("inf")]
     y_osc_period = y_osc_period or [float("inf")]
 
-    for thing in (cycle_period, x_vel, y_vel, x_osc_mag, y_osc_mag, x_osc_period, y_osc_period):
+    for thing in (cycle_offset, cycle_period, x_vel, y_vel, x_osc_mag, y_osc_mag, x_osc_period, y_osc_period):
         while len(thing) < num_images:
             thing.extend(thing)
 
@@ -55,7 +56,7 @@ def main(source_image, source_palette, palette, num_images, cycle_period, x_vel,
     alpha = 255./num_images
 
     palette_cycle_t = [0. for _ in range(num_images)]
-    palette_cycle = [0 for _ in range(num_images)]
+    palette_cycle = cycle_offset.copy()
 
     clock = pygame.time.Clock()
     t = 0.
@@ -67,7 +68,7 @@ def main(source_image, source_palette, palette, num_images, cycle_period, x_vel,
             t += dt
             for n, image in enumerate(images):
                 palette_cycle_t[n] += dt
-                if palette_cycle_t[n] > cycle_period[n%len(cycle_period)]:
+                if palette_cycle_t[n] > cycle_period[n]:
                     palette_cycle_t[n] = 0
                     palette_cycle[n] = (palette_cycle[n] + 1) % len(palette)
                 dx = (x_vel[n] * t) % src_width
@@ -88,6 +89,7 @@ if __name__ == "__main__":
     parser.add_argument("source_palette")
     parser.add_argument("palette")
     parser.add_argument("num_images", type=int)
+    parser.add_argument("--cycle-offset", action="append", type=int)
     parser.add_argument("--cycle-period", action="append", type=float)
     parser.add_argument("--x-vel", action="append", type=float)
     parser.add_argument("--y-vel", action="append", type=float)
